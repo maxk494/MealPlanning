@@ -190,7 +190,7 @@ def show_edit_recipe_page():
     st.header("Rezept bearbeiten")
 
     all_recipes = db.get_all_recipes()
-    recipe_names = all_recipes['name'].tolist()
+    recipe_names = all_recipes.sort_values('name')['name'].tolist()
     recipe_name = st.selectbox("Rezeptname", recipe_names)
     recipe_id = all_recipes[all_recipes['name'] == recipe_name].iloc[0]['id']
 
@@ -204,7 +204,7 @@ def show_edit_recipe_page():
 
         st.subheader("Zutaten")
         edited_ingredients = []
-        print(enumerate(ingredients))
+
         # Display existing ingredients with editable fields
         if not ingredients.empty:
             for idx, row in ingredients.iterrows():
