@@ -55,6 +55,21 @@ def show_recipes_page():
     if meal_type != "Alle":
         all_recipes = all_recipes[all_recipes['meal_type'] == meal_type]
 
+    # CSS
+    st.markdown(
+        """
+        <style>
+        .st-emotion-cache-rb05al {
+            min-width: 0px;}
+        .st-emotion-cache-bfpqqo {
+            min-width: 0px;}
+        .st-emotion-cache-1hyd1ho p {
+            word-break: normal;}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    st.markdown('<div class="horizontal-container">', unsafe_allow_html=True)
     # Display recipes grouped by meal type
     selected_recipe_ids = []
     for meal in MEAL_TYPES:
@@ -75,6 +90,8 @@ def show_recipes_page():
             with col2:
                 if st.button(recipe['name'], key=f"details_{recipe['id']}"):
                     show_recipe_details(recipe['id'])
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # Update selected recipes in database
     if len(selected_recipe_ids) > 0:
