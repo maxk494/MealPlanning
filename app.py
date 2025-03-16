@@ -83,7 +83,7 @@ def show_recipes_page():
             with col1:
                 # Initialize session_state for the checkbox if it doesn't exist
                 is_selected = st.checkbox(
-                    "Select", key=f"recipe_{recipe['id']}", value=recipe['id'] in selected_ids, label_visibility="hidden")
+                    "x", key=f"recipe_{recipe['id']}", value=recipe['id'] in selected_ids, label_visibility="hidden")
 
                 if is_selected:
                     selected_recipe_ids.append(recipe['id'])
