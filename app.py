@@ -10,13 +10,13 @@ db = MealDatabase()
 # Set page config
 st.set_page_config(
     page_title="Meal Planner",
-    page_icon="🍽️",
+    page_icon="🥗",
     layout="wide"
 )
 
 
 def main():
-    st.title("Meal Planner 🍽️")
+    st.title("Meal Planner 🥗")
 
     # Sidebar navigation
     page = st.sidebar.radio(
@@ -192,13 +192,16 @@ def show_edit_recipe_page():
     all_recipes = db.get_all_recipes()
     recipe_names = all_recipes.sort_values('name')['name'].tolist()
     recipe_name = st.selectbox("Rezeptname", recipe_names)
-    recipe_id = all_recipes[all_recipes['name'] == recipe_name].iloc[0]['id']
+    recipe_id = int(all_recipes[all_recipes['name'] == recipe_name].iloc[0]['id'])
 
-    recipe, ingredients = db.get_recipe_details(int(recipe_id))
-    
+    recipe, ingredients = db.get_recipe_details(recipe_id)
+
+    # Initialize ingredient count
+    if 'edit_ingredient_count' not in st.session_state:
+        st.session_state.edit_ingredient_count = len(ingredients)
+
     # Edit recipe form
     with st.form("edit_recipe"):
-        name = st.text_input("Rezeptname", value=recipe['name'].iloc[0])
         meal_type = st.selectbox("Mahlzeit", MEAL_TYPES, index=MEAL_TYPES.index(recipe['meal_type'].iloc[0]))
         preparation = st.text_area("Zubereitung", value=recipe['preparation'].iloc[0])
 
@@ -206,35 +209,35 @@ def show_edit_recipe_page():
         edited_ingredients = []
 
         # Display existing ingredients with editable fields
-        if not ingredients.empty:
-            for idx, row in ingredients.iterrows():
-                ing_name = row['name']
-                amount = row['amount']
-                unit = row['unit']
-                category = row['category']
-                col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
-                with col1:
-                    ing_name = st.text_input(f"Zutat {idx + 1}", value=ing_name, key=f"ing_name_{idx}")
-                with col2:
-                    amount = st.number_input(f"Menge {idx + 1}", value=amount, min_value=0.0, key=f"amount_{idx}")
-                with col3:
-                    unit = st.selectbox(f"Einheit {idx + 1}", UNITS, index=UNITS.index(unit), key=f"unit_{idx}")
-                with col4:
-                    category = st.selectbox(f"Kategorie {idx + 1}", CATEGORIES, index=CATEGORIES.index(category), key=f"category_{idx}")
+        for idx in range(st.session_state.edit_ingredient_count):
+            if idx < len(ingredients):
+                ing_name = ingredients.iloc[idx]['name']
+                amount = ingredients.iloc[idx]['amount']
+                unit = ingredients.iloc[idx]['unit']
+                category = ingredients.iloc[idx]['category']
+            else:
+                ing_name, amount, unit, category = "", 0, "g", CATEGORIES[0]
 
-                if ing_name and amount > 0:
-                    edited_ingredients.append((ing_name, amount, unit, category))
+            col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
+            with col1:
+                ing_name = st.text_input(f"Zutat {idx + 1}", value=ing_name, key=f"ing_name_{idx}")
+            with col2:
+                amount = st.number_input(f"Menge {idx + 1}", value=float(amount), min_value=0.0, key=f"amount_{idx}")
+            with col3:
+                unit = st.selectbox(f"Einheit {idx + 1}", UNITS, index=UNITS.index(unit), key=f"unit_{idx}")
+            with col4:
+                category = st.selectbox(f"Kategorie {idx + 1}", CATEGORIES, index=CATEGORIES.index(category), key=f"category_{idx}")
 
-        # Add ingredient button
-        if 'ingredient_count' not in st.session_state:
-            st.session_state.ingredient_count = len(ingredients)
+            if ing_name and amount > 0:
+                edited_ingredients.append((ing_name, amount, unit, category))
 
         if st.form_submit_button("+ Zutat hinzufügen"):
-            st.session_state.ingredient_count += 1
+            st.session_state.edit_ingredient_count += 1
+            st.rerun()
 
         # Save button
         if st.form_submit_button("Speichern"):
-            if not name or not meal_type or not preparation or not edited_ingredients:
+            if not meal_type or not preparation or not edited_ingredients:
                 st.error("Bitte fülle alle Pflichtfelder aus!")
             else:
                 try:
