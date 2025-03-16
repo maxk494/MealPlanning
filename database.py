@@ -133,7 +133,7 @@ class MealDatabase:
 
 # Predefined lists
 MEAL_TYPES = ["Frühstück", "Mittagessen", "Abendessen", "Snack", "Backen"]
-UNITS = ["g", "ml", "EL", "TL", "Stück"]
+UNITS = ["g", "ml", "EL", "TL", "Stk"]
 CATEGORIES = [
     "Obst & Gemüse",
     "Fleisch & Fisch",

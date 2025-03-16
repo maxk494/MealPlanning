@@ -105,14 +105,18 @@ def show_recipe_details(recipe_id):
         st.error("Rezept nicht gefunden!")
         return
 
-    st.subheader(f"Details: {recipe['name'].iloc[0]}")
     st.write(f"**Mahlzeit:** {recipe['meal_type'].iloc[0]}")
 
     st.write("**Zutaten:**")
     ingredients_df = ingredients[['name', 'amount', 'unit']].copy()
     ingredients_df['formatted_amount'] = ingredients_df['amount'].apply(
         format_amount)
-    st.table(ingredients_df[['name', 'formatted_amount', 'unit']])
+    ingredients_df = ingredients_df.rename(columns={
+        'name': 'Zutat',
+        'formatted_amount': 'M',
+        'unit': 'E'
+    })
+    st.dataframe(ingredients_df[['Zutat', 'M', 'E']], hide_index=True)
 
     st.write("**Zubereitung:**")
     preparation_steps = recipe['preparation'].iloc[0].split('\n')
