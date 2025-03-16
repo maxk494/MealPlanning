@@ -1,3 +1,4 @@
+from turtle import update
 import streamlit as st
 import pandas as pd
 import sqlite3
@@ -211,14 +212,19 @@ def show_new_recipe_page():
 def show_edit_recipe_page():
     st.header("Rezept bearbeiten")
 
+    def update_ingredient_count():
+        if 'edit_ingredient_count' in st.session_state:
+            del st.session_state.edit_ingredient_count
+
     all_recipes = db.get_all_recipes()
     recipe_names = all_recipes.sort_values('name')['name'].tolist()
-    recipe_name = st.selectbox("Rezeptname", recipe_names)
+    recipe_name = st.selectbox("Rezeptname", recipe_names, on_change=update_ingredient_count)
     recipe_id = int(all_recipes[all_recipes['name'] == recipe_name].iloc[0]['id'])
 
+    # After fetching the new recipe and its ingredients
     recipe, ingredients = db.get_recipe_details(recipe_id)
 
-    # Initialize ingredient count
+    # Initialize ingredient count if not already set
     if 'edit_ingredient_count' not in st.session_state:
         st.session_state.edit_ingredient_count = len(ingredients)
 
