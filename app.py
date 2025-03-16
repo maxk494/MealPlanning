@@ -64,7 +64,8 @@ def show_recipes_page():
         .st-emotion-cache-bfpqqo {
             min-width: 0px;}
         .st-emotion-cache-1hyd1ho p {
-            word-break: normal;}
+            word-break: normal;
+            white-space: normal;}
         </style>
         """,
         unsafe_allow_html=True
