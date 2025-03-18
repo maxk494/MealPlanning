@@ -49,7 +49,8 @@ def show_recipes_page():
         # Clear selected recipes in the database
         db.update_selected_recipes([])
         selected_ids.clear()  # Clear the selected_ids list to reflect the reset
-        st.stop()  # Stop execution
+        db.clear_additional_ingredients()  # Clear the additional ingredients table
+        st.rerun()  # Rerun the app
 
     # Filter by meal type
     meal_type = st.selectbox("Nach Mahlzeit filtern", ["Alle"] + MEAL_TYPES)
@@ -150,6 +151,13 @@ def show_shopping_page():
                     f"{item['name']}: {item['formatted_amount']} {item['unit']}",
                     key=f"shop_{item['name']}"
                 )
+    
+    # Zuästzliche Einkäufe
+    new_ingredient_name = st.text_input('+ Weitere Einkäufe hinzufügen')
+    if new_ingredient_name:
+        db.add_additional_ingredient(new_ingredient_name)
+        st.success(f'{new_ingredient_name} hinzugefügt!')
+        st.rerun()
 
 
 def show_new_recipe_page():

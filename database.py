@@ -38,6 +38,13 @@ class MealDatabase:
                 )
             """)
 
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS additional_ingredients (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL
+                )
+            """)
+
     def add_recipe(self, meal_type: str, name: str, preparation: str,
                    ingredients: List[Tuple[str, float, str, str]]):
         with sqlite3.connect(self.db_path) as conn:
@@ -99,7 +106,13 @@ class MealDatabase:
                 FROM ingredients i
                 JOIN selected_recipes sr ON i.recipe_id = sr.recipe_id
                 GROUP BY i.name, i.unit, i.category
-                ORDER BY i.category, i.name""",
+
+                UNION ALL
+
+                SELECT a.name, 'Sonstiges' as category, COUNT(*) as total_amount, 'Stk' as unit
+                FROM additional_ingredients a
+                GROUP BY a.name
+                ORDER BY category, name""",
                 conn
             )
 
@@ -130,6 +143,17 @@ class MealDatabase:
             conn.execute("DELETE FROM ingredients WHERE recipe_id = ?", (recipe_id,))
 
         return True
+
+    def add_additional_ingredient(self, name):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                INSERT INTO additional_ingredients (name)
+                VALUES (?)
+            ''', (name,))
+
+    def clear_additional_ingredients(self):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('DELETE FROM additional_ingredients')
 
 # Predefined lists
 MEAL_TYPES = ["Frühstück", "Mittagessen", "Abendessen", "Snack", "Backen"]
