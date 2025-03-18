@@ -1,7 +1,7 @@
-from turtle import update
 import streamlit as st
-import pandas as pd
 import sqlite3
+import os
+from dotenv import load_dotenv
 from database import MealDatabase, MEAL_TYPES, UNITS, CATEGORIES
 from format import format_amount
 
@@ -159,134 +159,158 @@ def show_shopping_page():
         st.success(f'{new_ingredient_name} hinzugefügt!')
         st.rerun()
 
+# Load environment variables
+load_dotenv()
+APP_PASSWORD = os.getenv("APP_PASSWORD")
 
 def show_new_recipe_page():
     st.header("Neues Rezept erstellen")
 
-    with st.form("new_recipe"):
-        name = st.text_input("Rezeptname")
-        meal_type = st.selectbox("Mahlzeit", MEAL_TYPES)
-        preparation = st.text_area("Zubereitung")
+    # Password input
+    password = st.text_input("Password", type="password")
 
-        st.subheader("Zutaten")
-        ingredients = []
+    if password != APP_PASSWORD:
+        st.error("Incorrect password. Access denied.")
+    else:
+        # Proceed with the rest of the page functionality
+        st.success("Access granted.")
 
-        # Container for dynamic ingredient fields
-        ingredient_container = st.container()
+        with st.form("new_recipe"):
+            name = st.text_input("Rezeptname")
+            meal_type = st.selectbox("Mahlzeit", MEAL_TYPES)
+            preparation = st.text_area("Zubereitung")
 
-        # Add ingredient button
-        if 'ingredient_count' not in st.session_state:
-            st.session_state.ingredient_count = 1
+            st.subheader("Zutaten")
+            ingredients = []
 
-        if st.form_submit_button("+ Zutat hinzufügen"):
-            st.session_state.ingredient_count += 1
+            # Container for dynamic ingredient fields
+            ingredient_container = st.container()
 
-        # Display ingredient fields
-        with ingredient_container:
-            for i in range(st.session_state.ingredient_count):
-                col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
-                with col1:
-                    ing_name = st.text_input(
-                        f"Zutat {i+1}", key=f"ing_name_{i}")
-                with col2:
-                    amount = st.number_input(f"Menge {i+1}",
-                                             min_value=0.0,
-                                             key=f"amount_{i}")
-                with col3:
-                    unit = st.selectbox(f"Einheit {i+1}",
-                                        UNITS,
-                                        key=f"unit_{i}")
-                with col4:
-                    category = st.selectbox(f"Kategorie {i+1}",
-                                            CATEGORIES,
-                                            key=f"category_{i}")
+            # Add ingredient button
+            if 'ingredient_count' not in st.session_state:
+                st.session_state.ingredient_count = 1
 
-                if ing_name and amount > 0:
-                    ingredients.append((ing_name, amount, unit, category))
+            if st.form_submit_button("+ Zutat hinzufügen"):
+                st.session_state.ingredient_count += 1
 
-        # Save button
-        if st.form_submit_button("Speichern"):
-            if not name or not meal_type or not preparation or not ingredients:
-                st.error("Bitte fülle alle Pflichtfelder aus!")
-            else:
-                try:
-                    db.add_recipe(meal_type, name, preparation, ingredients)
-                    st.success("Rezept erfolgreich gespeichert!")
-                    st.session_state.ingredient_count = 1  # Reset ingredient count
-                except sqlite3.IntegrityError:
-                    st.error("Ein Rezept mit diesem Namen existiert bereits!")
+            # Display ingredient fields
+            with ingredient_container:
+                for i in range(st.session_state.ingredient_count):
+                    col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
+                    with col1:
+                        ing_name = st.text_input(
+                            f"Zutat {i+1}", key=f"ing_name_{i}")
+                    with col2:
+                        amount = st.number_input(f"Menge {i+1}",
+                                                min_value=0.0,
+                                                key=f"amount_{i}")
+                    with col3:
+                        unit = st.selectbox(f"Einheit {i+1}",
+                                            UNITS,
+                                            key=f"unit_{i}")
+                    with col4:
+                        category = st.selectbox(f"Kategorie {i+1}",
+                                                CATEGORIES,
+                                                key=f"category_{i}")
 
+                    if ing_name and amount > 0:
+                        ingredients.append((ing_name, amount, unit, category))
+
+            # Save button
+            if st.form_submit_button("Speichern"):
+                if not name or not meal_type or not preparation or not ingredients:
+                    st.error("Bitte fülle alle Pflichtfelder aus!")
+                else:
+                    try:
+                        db.add_recipe(meal_type, name, preparation, ingredients)
+                        st.success("Rezept erfolgreich gespeichert!")
+                        st.session_state.ingredient_count = 1  # Reset ingredient count
+                    except sqlite3.IntegrityError:
+                        st.error("Ein Rezept mit diesem Namen existiert bereits!")
+
+# Load environment variables
+load_dotenv()
+APP_PASSWORD = os.getenv("APP_PASSWORD")
 
 def show_edit_recipe_page():
     st.header("Rezept bearbeiten")
 
-    def update_ingredient_count():
-        if 'edit_ingredient_count' in st.session_state:
-            del st.session_state.edit_ingredient_count
+    # Password input
+    password = st.text_input("Password", type="password")
 
-    all_recipes = db.get_all_recipes()
-    recipe_names = all_recipes.sort_values('name')['name'].tolist()
-    recipe_name = st.selectbox("Rezeptname", recipe_names, on_change=update_ingredient_count)
-    recipe_id = int(all_recipes[all_recipes['name'] == recipe_name].iloc[0]['id'])
+    if password != APP_PASSWORD:
+        st.error("Incorrect password. Access denied.")
+    else:
+        # Proceed with the rest of the page functionality
+        st.success("Access granted.")        
 
-    # After fetching the new recipe and its ingredients
-    recipe, ingredients = db.get_recipe_details(recipe_id)
+        def update_ingredient_count():
+            if 'edit_ingredient_count' in st.session_state:
+                del st.session_state.edit_ingredient_count
 
-    # Initialize ingredient count if not already set
-    if 'edit_ingredient_count' not in st.session_state:
-        st.session_state.edit_ingredient_count = len(ingredients)
+        all_recipes = db.get_all_recipes()
+        recipe_names = all_recipes.sort_values('name')['name'].tolist()
+        recipe_name = st.selectbox("Rezeptname", recipe_names, on_change=update_ingredient_count)
+        recipe_id = int(all_recipes[all_recipes['name'] == recipe_name].iloc[0]['id'])
 
-    # Edit recipe form
-    with st.form("edit_recipe"):
-        meal_type = st.selectbox("Mahlzeit", MEAL_TYPES, index=MEAL_TYPES.index(recipe['meal_type'].iloc[0]))
-        preparation = st.text_area("Zubereitung", value=recipe['preparation'].iloc[0])
+        # After fetching the new recipe and its ingredients
+        recipe, ingredients = db.get_recipe_details(recipe_id)
 
-        st.subheader("Zutaten")
-        edited_ingredients = []
+        # Initialize ingredient count if not already set
+        if 'edit_ingredient_count' not in st.session_state:
+            st.session_state.edit_ingredient_count = len(ingredients)
 
-        # Display existing ingredients with editable fields
-        for idx in range(st.session_state.edit_ingredient_count):
-            if idx < len(ingredients):
-                ing_name = ingredients.iloc[idx]['name']
-                amount = ingredients.iloc[idx]['amount']
-                unit = ingredients.iloc[idx]['unit']
-                category = ingredients.iloc[idx]['category']
-            else:
-                ing_name, amount, unit, category = "", 0, "g", CATEGORIES[0]
+        # Edit recipe form
+        with st.form("edit_recipe"):
+            meal_type = st.selectbox("Mahlzeit", MEAL_TYPES, index=MEAL_TYPES.index(recipe['meal_type'].iloc[0]))
+            preparation = st.text_area("Zubereitung", value=recipe['preparation'].iloc[0])
 
-            col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
-            with col1:
-                ing_name = st.text_input(f"Zutat {idx + 1}", value=ing_name, key=f"ing_name_{idx}")
-            with col2:
-                amount = st.number_input(f"Menge {idx + 1}", value=float(amount), min_value=0.0, key=f"amount_{idx}")
-            with col3:
-                unit = st.selectbox(f"Einheit {idx + 1}", UNITS, index=UNITS.index(unit), key=f"unit_{idx}")
-            with col4:
-                category = st.selectbox(f"Kategorie {idx + 1}", CATEGORIES, index=CATEGORIES.index(category), key=f"category_{idx}")
+            st.subheader("Zutaten")
+            edited_ingredients = []
 
-            if ing_name and amount > 0:
-                edited_ingredients.append((ing_name, amount, unit, category))
+            # Display existing ingredients with editable fields
+            for idx in range(st.session_state.edit_ingredient_count):
+                if idx < len(ingredients):
+                    ing_name = ingredients.iloc[idx]['name']
+                    amount = ingredients.iloc[idx]['amount']
+                    unit = ingredients.iloc[idx]['unit']
+                    category = ingredients.iloc[idx]['category']
+                else:
+                    ing_name, amount, unit, category = "", 0, "g", CATEGORIES[0]
 
-        if st.form_submit_button("+ Zutat hinzufügen"):
-            st.session_state.edit_ingredient_count += 1
-            st.rerun()
+                col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
+                with col1:
+                    ing_name = st.text_input(f"Zutat {idx + 1}", value=ing_name, key=f"ing_name_{idx}")
+                with col2:
+                    amount = st.number_input(f"Menge {idx + 1}", value=float(amount), min_value=0.0, key=f"amount_{idx}")
+                with col3:
+                    unit = st.selectbox(f"Einheit {idx + 1}", UNITS, index=UNITS.index(unit), key=f"unit_{idx}")
+                with col4:
+                    category = st.selectbox(f"Kategorie {idx + 1}", CATEGORIES, index=CATEGORIES.index(category), key=f"category_{idx}")
 
-        # Save button
-        if st.form_submit_button("Speichern"):
-            if not meal_type or not preparation or not edited_ingredients:
-                st.error("Bitte fülle alle Pflichtfelder aus!")
-            else:
-                try:
-                    db.edit_recipe(recipe_id, meal_type, name, preparation, edited_ingredients)
-                    st.success("Rezept erfolgreich gespeichert!")
-                    st.session_state.ingredient_count = len(edited_ingredients)  # Reset ingredient count
-                except sqlite3.IntegrityError:
-                    st.error("Ein Rezept mit diesem Namen existiert bereits!")
+                if ing_name and amount > 0:
+                    edited_ingredients.append((ing_name, amount, unit, category))
 
-    # Delete button
-    if st.button("Rezept löschen"):
-        db.delete_recipe(recipe_id)
-        st.success("Rezept erfolgreich gelöscht!")
+            if st.form_submit_button("+ Zutat hinzufügen"):
+                st.session_state.edit_ingredient_count += 1
+                st.rerun()
+
+            # Save button
+            if st.form_submit_button("Speichern"):
+                if not meal_type or not preparation or not edited_ingredients:
+                    st.error("Bitte fülle alle Pflichtfelder aus!")
+                else:
+                    try:
+                        db.edit_recipe(recipe_id, meal_type, name, preparation, edited_ingredients)
+                        st.success("Rezept erfolgreich gespeichert!")
+                        st.session_state.ingredient_count = len(edited_ingredients)  # Reset ingredient count
+                    except sqlite3.IntegrityError:
+                        st.error("Ein Rezept mit diesem Namen existiert bereits!")
+
+        # Delete button
+        if st.button("Rezept löschen"):
+            db.delete_recipe(recipe_id)
+            st.success("Rezept erfolgreich gelöscht!")
 
 
 if __name__ == "__main__":
