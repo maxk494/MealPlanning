@@ -262,6 +262,7 @@ def show_edit_recipe_page():
 
         # Edit recipe form
         with st.form("edit_recipe"):
+            name = st.text_input("Rezeptname", value=recipe['name'].iloc[0])
             meal_type = st.selectbox("Mahlzeit", MEAL_TYPES, index=MEAL_TYPES.index(recipe['meal_type'].iloc[0]))
             preparation = st.text_area("Zubereitung", value=recipe['preparation'].iloc[0])
 
