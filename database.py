@@ -177,7 +177,7 @@ class MealDatabase:
             conn.execute(text("DELETE FROM recipes WHERE id = :recipe_id"), {"recipe_id": recipe_id})
             # Also delete associated ingredients
             conn.execute(text("DELETE FROM ingredients WHERE recipe_id = :recipe_id"), {"recipe_id": recipe_id})
-
+            conn.commit()
         return True
 
 
