@@ -1,7 +1,6 @@
 import streamlit as st
 import sqlite3
-import os
-from dotenv import load_dotenv
+import pandas as pd
 from database import MealDatabase, MEAL_TYPES, UNITS, CATEGORIES
 from format import format_amount
 
@@ -14,7 +13,6 @@ st.set_page_config(
     page_icon="🥗",
     layout="wide"
 )
-
 
 def main():
     st.title("Meal Planner 🥗")
@@ -34,6 +32,9 @@ def main():
     else:
         show_edit_recipe_page()
 
+# -------- #
+# GERICHTE #
+# -------- #
 
 def show_recipes_page():
     st.header("Gerichte")
@@ -42,7 +43,7 @@ def show_recipes_page():
     all_recipes = db.get_all_recipes()
     selected_recipes = db.get_selected_recipes()
     # Update selected_ids from the database
-    selected_ids = selected_recipes['id'].tolist()
+    selected_ids = selected_recipes['recipe_id'].tolist()
 
     # Clear selection button
     if st.button("Auswahl zurücksetzen"):
@@ -104,42 +105,42 @@ def show_recipes_page():
 def show_recipe_details(recipe_id):
     recipe, ingredients = db.get_recipe_details(recipe_id)
 
-    if recipe is None or recipe.empty:
+    if recipe is None:
         st.error("Rezept nicht gefunden!")
         return
-
-    st.write(f"**Mahlzeit:** {recipe['meal_type'].iloc[0]}")
-
+    
+    st.write(f"**Mahlzeit:** {recipe['meal_type']}")
+    st.write(f"**Name:** {recipe['name']}")
     st.write("**Zutaten:**")
-    ingredients_df = ingredients[['name', 'amount', 'unit']].copy()
-    ingredients_df['formatted_amount'] = ingredients_df['amount'].apply(
-        format_amount)
-    ingredients_df = ingredients_df.rename(columns={
+    ingredients['formatted_amount'] = ingredients['amount'].apply(format_amount)
+    ingredients = ingredients.rename(columns={
         'name': 'Zutat',
         'formatted_amount': 'M',
         'unit': 'E'
     })
-    st.dataframe(ingredients_df[['Zutat', 'M', 'E']], hide_index=True)
+    st.dataframe(ingredients[['Zutat', 'M', 'E']], hide_index=True)
 
     st.write("**Zubereitung:**")
-    preparation_steps = recipe['preparation'].iloc[0].split('\n')
-    preparation_steps = [x for x in preparation_steps if x != '']
-    for i, step in enumerate(preparation_steps, start=1):
+    preparation = recipe['preparation'].split('\n')
+    preparation = [x for x in preparation if x != '']
+    for i, step in enumerate(preparation, start=1):
         # Display each step as a numbered item
         st.write(f"{i}. {step.strip()}")
 
+# ------------ #
+# SHOPPINGLIST #
+# ------------ #
 
 def show_shopping_page():
     st.header("Einkaufsliste")
 
     shopping_list = db.get_shopping_list()
-    if shopping_list.empty:
-        st.warning(
-            "Keine Rezepte ausgewählt. Bitte wähle zuerst Rezepte auf der 'Gerichte' Seite aus.")
+    if shopping_list.empty:  # Check if list is empty
+        st.info("Die Einkaufsliste ist leer.")
         return
-
-    # Format the total_amount column using the format_amount function
-    shopping_list['formatted_amount'] = shopping_list['total_amount'].apply(format_amount)
+    
+    # Formatieren der Menge
+    shopping_list['Menge'] = shopping_list['total_amount'].apply(format_amount)
 
     # Group by category
     for category in CATEGORIES:
@@ -148,20 +149,28 @@ def show_shopping_page():
             st.subheader(category)
             for _, item in category_items.iterrows():
                 st.checkbox(
-                    f"{item['name']}: {item['formatted_amount']} {item['unit']}",
+                    f"{item['name']}: {item['Menge']} {item['unit']}",
                     key=f"shop_{item['name']}"
                 )
     
-    # Zuästzliche Einkäufe
+    # Zusätzliche Einkäufe
+    # Initialisiere den Zustand, falls noch nicht geschehen
+    if 'ingredients_added' not in st.session_state:
+        st.session_state.ingredients_added = set()
     new_ingredient_name = st.text_input('+ Weitere Einkäufe hinzufügen')
-    if new_ingredient_name:
+
+    if new_ingredient_name and new_ingredient_name not in st.session_state.ingredients_added:
+        # Füge die Zutat hinzu
         db.add_additional_ingredient(new_ingredient_name)
-        st.success(f'{new_ingredient_name} hinzugefügt!')
+        st.success(f'{new_ingredient_name.capitalize()} hinzugefügt!')
+        
+        # Markiere die Zutat als hinzugefügt
+        st.session_state.ingredients_added.add(new_ingredient_name)        
         st.rerun()
 
-# Load environment variables
-load_dotenv()
-APP_PASSWORD = os.getenv("APP_PASSWORD")
+# ---------- #
+# NEW RECIPE #
+# ---------- #
 
 def show_new_recipe_page():
     st.header("Neues Rezept erstellen")
@@ -169,7 +178,7 @@ def show_new_recipe_page():
     # Password input
     password = st.text_input("Password", type="password")
 
-    if password != APP_PASSWORD:
+    if password != st.secrets["APP_PASSWORD"]:
         st.error("Incorrect password. Access denied.")
     else:
         # Proceed with the rest of the page functionality
@@ -228,9 +237,6 @@ def show_new_recipe_page():
                     except sqlite3.IntegrityError:
                         st.error("Ein Rezept mit diesem Namen existiert bereits!")
 
-# Load environment variables
-load_dotenv()
-APP_PASSWORD = os.getenv("APP_PASSWORD")
 
 def show_edit_recipe_page():
     st.header("Rezept bearbeiten")
@@ -238,7 +244,7 @@ def show_edit_recipe_page():
     # Password input
     password = st.text_input("Password", type="password")
 
-    if password != APP_PASSWORD:
+    if password != st.secrets["APP_PASSWORD"]:
         st.error("Incorrect password. Access denied.")
     else:
         # Proceed with the rest of the page functionality
@@ -262,9 +268,9 @@ def show_edit_recipe_page():
 
         # Edit recipe form
         with st.form("edit_recipe"):
-            name = st.text_input("Rezeptname", value=recipe['name'].iloc[0])
-            meal_type = st.selectbox("Mahlzeit", MEAL_TYPES, index=MEAL_TYPES.index(recipe['meal_type'].iloc[0]))
-            preparation = st.text_area("Zubereitung", value=recipe['preparation'].iloc[0])
+            name = st.text_input("Rezeptname", value=recipe['name'])
+            meal_type = st.selectbox("Mahlzeit", MEAL_TYPES, index=MEAL_TYPES.index(recipe['meal_type']))
+            preparation = st.text_area("Zubereitung", value=recipe['preparation'])
 
             st.subheader("Zutaten")
             edited_ingredients = []
