@@ -5,11 +5,21 @@ import pandas as pd
 from typing import List, Tuple
 
 class MealDatabase:
-    def __init__(self, db_path: str = "meals.db"):
+    def __init__(self):
         self.db_path = st.secrets["DATABASE_URL"]
-        self.engine = create_engine(self.db_path)  # SQLAlchemy Engine
+        self.engine = self.create_engine(self.db_path)
         self.setup_database()
 
+    def create_engine(self, db_path):
+        # Pooling-Einstellungen Datenbank
+        return create_engine(
+            db_path,
+            pool_size=10,       # Maximale Anzahl der Verbindungen im Pool
+            max_overflow=5,     # Anzahl der Verbindungen, die über den Pool hinaus erstellt werden können
+            pool_timeout=30,    # Maximale Wartezeit, um eine Verbindung zu erhalten
+            pool_pre_ping=True   # Automatischer Ping, um sicherzustellen, dass die Verbindung gültig ist
+        )
+        
     def setup_database(self):
         with self.engine.connect() as conn:
             conn.execute(text("""
